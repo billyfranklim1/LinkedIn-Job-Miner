@@ -6,22 +6,17 @@ import time
 black_list_companies = ['GeekHunter', 'Netvagas', 'Oowlish']
 
 def make_request(url):
-    try:
-        headers = {'User-Agent': 'Mozilla/5.0'}
-        response = requests.get(url, headers=headers)
-        response.raise_for_status()
-        return response
-    except requests.exceptions.RequestException as e:
-        print(f"Erro ao fazer a solicitação: {e}")
-        return None
+    response = requests.get(url)
+    return response
+
 
 def scrape_linkedin_jobs(webpage, max_pages=10):
     all_jobs = []
     for page_number in range(max_pages):
-        next_page = f"{webpage}&start={page_number * 25}"
+        next_page = f"{webpage}&start={page_number}"
         response = make_request(next_page)
         if not response:
-            break
+            continue
 
         soup = BeautifulSoup(response.content, 'html.parser')
         jobs = soup.find_all('div', class_='base-card relative w-full hover:no-underline focus:no-underline base-card--link base-search-card base-search-card--link job-search-card')
