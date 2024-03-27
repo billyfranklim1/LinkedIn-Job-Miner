@@ -3,16 +3,19 @@ import requests
 from bs4 import BeautifulSoup
 import time
 
-black_list_companies = ['GeekHunter', 'Netvagas', 'Oowlish']
+black_list_companies = ['GeekHunter', 'Netvagas', 'Oowlish', 'Crossover']
 
 def make_request(url):
     response = requests.get(url)
     return response
 
 
-def scrape_linkedin_jobs(webpage, max_pages=10):
+def scrape_linkedin_jobs(webpage, max_pages=50):
     all_jobs = []
+    unique_links = set()
+
     for page_number in range(max_pages):
+        today = time.strftime("%Y-%m-%d")
         next_page = f"{webpage}&start={page_number}"
         response = make_request(next_page)
         if not response:
@@ -27,10 +30,13 @@ def scrape_linkedin_jobs(webpage, max_pages=10):
             job_location = job.find('span', class_='job-search-card__location').text.strip()
             job_link = job.find('a', class_='base-card__full-link')['href']
             job_date_element = job.find('time', class_='job-search-card__listdate')
-            job_date = job_date_element.get('datetime') if job_date_element else 'No date'
+            job_date = job_date_element.get('datetime') if job_date_element else today
+            
+            base_link = job_link.split('?')[0]
 
-            if job_company not in black_list_companies:
-                all_jobs.append([job_title, job_company, job_location, job_date, job_link])
+            if job_company not in black_list_companies and base_link not in unique_links:
+                all_jobs.append([job_title, job_company, job_location, job_date, base_link])
+                unique_links.add(base_link)
 
     return all_jobs
 
@@ -62,6 +68,8 @@ def main():
     webpage = f'https://www.linkedin.com/jobs-guest/jobs/api/seeMoreJobPostings/search?keywords={position}&location={location}&f_TPR={time_posted}&f_E={level}&f_WT={work_type}&trk=public_jobs_jobs-search-bar_search-submit&position=1&pageNum=0'
     
     all_jobs = scrape_linkedin_jobs(webpage)
+    all_jobs.sort(key=lambda x: x[3], reverse=True)
+
     save_jobs_to_csv(all_jobs, filename)
     print('Arquivo salvo com sucesso.')
 
